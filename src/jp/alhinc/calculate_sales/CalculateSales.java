@@ -211,14 +211,16 @@ public class CalculateSales {
 	 * @return 書き込み可否
 	 */
 	private static boolean writeFile(String path, String fileName, Map<String, String> branchNames, Map<String, Long> branchSales) {
+		//writeFileが普通の字	大枠で書いてある箇所から呼び出されたところ
 		// ※ここに書き込み処理を作成してください。(処理内容3-1)
 		BufferedWriter bw = null;
 		try {
 		//Fileオブジェクトを作成(path=args[]、fileName=branch.out)
+		//コマンドライン引数で指定されたディレクトリに支店別集計ファイルを作成する
 		File file = new File(path, fileName);
 
 		FileWriter fw = new FileWriter(file);
-		//文字列を受け取るFileReader
+		//文字列を受け取る
 		bw = new BufferedWriter(fw);
 		//文字列を受け取って蓄えて、必要な時に渡す
 
@@ -242,6 +244,7 @@ public class CalculateSales {
 	return true;
 }
 
+	{}ssad
 
 
 }
