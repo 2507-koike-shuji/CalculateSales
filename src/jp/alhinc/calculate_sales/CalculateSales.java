@@ -43,20 +43,20 @@ public class CalculateSales {
 		if (!readFile(args[0], FILE_NAME_BRANCH_LST, branchNames, branchSales)) {
 			return; //　falseならここで終わる　trueなら店定義ファイル読み込み処に進む
 		}
-		//指定したパスに存在する全てのファイル(または、ディレクトリ)の情報を格納します +　files…売上ファイルもあれば、branch.lstも混ざっている
+		//指定したパスに存在する全てのファイル(または、ディレクトリ)の情報を格納します +files…売上ファイルもあれば、branch.lstも混ざっている
 		File[] files = new File(args[0]).listFiles();
 
 		//rcdFiles…売上ファイルのみが格納されるリスト
 		List<File> rcdFiles = new ArrayList<>();
 
-		//全てのファイルを取得　要素数の
+		//全てのファイルを取得　要素数の数を繰り返す
 		for (int i = 0; i < files.length; i++) {
 
 			//ファイル名取得
 			String fileName = files[i].getName();
 
 			//matches を使⽤してファイル名が「数字8桁.rcd」なのか判定します。
-			if (fileName.matches("[0-9]{8}.rcd")) {
+			if (fileName.matches("^[0-9]{8}[.]rcd$")) {
 
 				//trueの場合の処理
 				rcdFiles.add(files[i]);
@@ -69,7 +69,7 @@ public class CalculateSales {
 		//取り出し	rcdFilesに複数の売上ファイルの情報を格納しているので、その数だけ繰り返します。
 		for (int i = 0; i < rcdFiles.size(); i++) {
 			try {
-				//ファイルを開く準備ができただけ
+				//売上ファイルを開く準備ができただけ
 				File file = new File(args[0], rcdFiles.get(i).getName());
 
 				FileReader fr = new FileReader(file);
@@ -79,24 +79,24 @@ public class CalculateSales {
 
 				String line;
 				//リストを作る
-				List<String> profits = new ArrayList<>();
+				List<String> fileContents = new ArrayList<>();
 
 				while ((line = br.readLine()) != null) {
 					//売上ファイルの1行目には支店コード、2行目には売上金額が入っています。
 					//1行ずつ読み込まれるため、1ineは1回目は支店コードが入れられる 2回目は売上金額が入る
 					//リストを制作して追加しないと1つ目が２つ目に上書きされてしまう、それゆえ
 					//リストにaddして、上書きされないようにする
-					profits.add(line);
+					fileContents.add(line);
 					//このラインを格納しているlist[profit]にline(支店コード[0]・金額[1])が追加されてく
 				}
 				//型の変換 売上ファイルから読み込んだ売上金額をMapに加算していくために、型変換を行う
-				long fileSale = Long.parseLong(profits.get(1));
+				long fileSale = Long.parseLong(fileContents.get(1));
 
 				//既にMapにある売上⾦額を取得
-				Long saleAmount = branchSales.get(profits.get(0)) + fileSale;
+				Long saleAmount = branchSales.get(fileContents.get(0)) + fileSale;
 
 				//取得したものに加算した売上⾦額をMapに追加
-				branchSales.put(profits.get(0), saleAmount);
+				branchSales.put(fileContents.get(0), saleAmount);
 
 			} catch (IOException e) {
 				System.out.println(UNKNOWN_ERROR);
@@ -144,9 +144,9 @@ public class CalculateSales {
 			// 一行ずつ読み込む
 			while ((line = br.readLine()) != null) {
 				String[] items = line.split(",");
-				//reallinedで1行づつ読み込んだ結果をlineに代入している　
+				//reallinedで1行づつ読み込んだ結果をlineに代入している	下は支店定義ファイル
 				//nullじゃない限り繰り返す
-				// ※ここの読み込み処理を変更してください。(処理内容1-2)
+				// ※ここの読み込み処理を変更してください。(処理内容1-2) 金額がまだ入っていない namesにはすでに完成　KEYのみを設定　上での足し算に生かす
 				branchNames.put(items[0], items[1]);
 				branchSales.put(items[0], 0L);
 			}
@@ -199,10 +199,7 @@ public class CalculateSales {
 				bw.write(key + "." + branchNames.get(key) + "," + branchSales.get(key));
 				bw.newLine();
 			}
-			//取った情報をどうするの？
-			//上で書くためのファイルを作った　そして、KEY取得し、その中身を取り出して、どこにもいれてない　　→　書き込みたい　
-			//bw.   (取った情報　+ ","+///)　書いてく
-			//改行
+
 		} catch (IOException e) {
 			System.out.println(UNKNOWN_ERROR);
 			return false;
