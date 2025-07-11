@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +62,25 @@ public class CalculateSales {
 				//trueの場合の処理
 				rcdFiles.add(files[i]);
 			}
+
 		}
+
+		Collections.sort(rcdFiles);
+
+		for (int i = 0; i < rcdFiles.size() - 1; i++) {
+			rcdFiles.get(i);
+			rcdFiles.get(i).getName();
+
+			int former = Integer.parseInt(rcdFiles.get(i).getName().substring(0, 8));
+			int latter = Integer.parseInt(rcdFiles.get(i + 1).getName().substring(0, 8));
+
+			//⽐較する2つのファイル名の先頭から数字の8⽂字を切り出し、int型に変換します。
+			if ((latter - former) != 1) {
+				System.out.println(UNKNOWN_ERROR);
+				return;
+			}
+		}
+
 		//以上までが該当のファイルを保持にすぎない
 		//ここからファイルの取り出し	→ 	読み込み[String型]	→	取り出し	→	型変換
 		BufferedReader br = null;
@@ -119,6 +138,7 @@ public class CalculateSales {
 			return;
 		}
 	}
+
 	/**
 	 * 支店定義ファイル読み込み処理を下記にて行う
 	 *必要な引数が上から4つ
@@ -132,6 +152,13 @@ public class CalculateSales {
 	//引数4つ
 	private static boolean readFile(String path, String fileName, Map<String, String> branchNames,
 			Map<String, Long> branchSales) {
+
+		File file = new File(path, fileName);
+		if (!file.exists()) {
+			System.out.println(UNKNOWN_ERROR);
+			return false;
+		}
+
 		BufferedReader br = null;
 
 		try {
@@ -143,12 +170,19 @@ public class CalculateSales {
 			String line;
 			// 一行ずつ読み込む
 			while ((line = br.readLine()) != null) {
+
 				String[] items = line.split(",");
+				if ((items.length != 2) || (!items[0].matches("^[0-9]{3}$"))) {
+					//⽀店定義ファイルの左右両方の仕様が満たされていない場合、
+					System.out.println(UNKNOWN_ERROR);
+					return false;
+				}
 				//reallinedで1行づつ読み込んだ結果をlineに代入している	下は支店定義ファイル
 				//nullじゃない限り繰り返す
-				// ※ここの読み込み処理を変更してください。(処理内容1-2) 金額がまだ入っていない namesにはすでに完成　KEYのみを設定　上での足し算に生かす
+				// ※ここの読み込み処理を変更してください。(処理内容1-2) 金額がまだ入っていない namesにはすでに完成	KEYのみを設定	上での足し算に生かす
 				branchNames.put(items[0], items[1]);
 				branchSales.put(items[0], 0L);
+
 			}
 		} catch (IOException e) {
 			System.out.println(UNKNOWN_ERROR);
@@ -167,6 +201,7 @@ public class CalculateSales {
 		}
 		return true;
 	}
+
 	/**
 	 * 支店別集計ファイル書き込み処理
 	 *
@@ -177,11 +212,11 @@ public class CalculateSales {
 	 * @return 書き込み可否
 	 */
 	private static boolean writeFile(String path, String fileName, Map<String, String> branchNames,
-			Map<String, Long> branchSales)	{
+			Map<String, Long> branchSales) {
 		//writeFileが普通の字	大枠で書いてある箇所から呼び出されたところ
 		// ※ここに書き込み処理を作成してください。(処理内容3-1)
 		BufferedWriter bw = null;
-		try	{
+		try {
 			//Fileオブジェクトを作成(path=args[]、fileName=branch.out) 名前と場所を指定して
 			//コマンドライン引数で指定されたディレクトリに支店別集計ファイルを作成する
 			File file = new File(path, fileName);
