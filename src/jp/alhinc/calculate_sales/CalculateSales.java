@@ -24,6 +24,9 @@ public class CalculateSales {
 	private static final String UNKNOWN_ERROR = "予期せぬエラーが発生しました";
 	private static final String FILE_NOT_EXIST = "支店定義ファイルが存在しません";
 	private static final String FILE_INVALID_FORMAT = "支店定義ファイルのフォーマットが不正です";
+	private static final String FILE_FORMAT_INCORECT = "<該当ファイル名>のフォーマットが不正です";
+	private static final String FILE_CODE_NOT_EXIST = "<該当ファイル名>の⽀店コードが不正です";
+	private static final String TOTAl_AMOUNT ="合計金額が10桁を超えました";
 
 	/**
 	 * メインメソッド
@@ -111,18 +114,18 @@ public class CalculateSales {
 					//このラインを格納しているlist[fielcontets]にline(支店コード[0]・金額[1])が追加されてく
 				}
 				if (fileContents.size() != 2) {
-					System.out.println(UNKNOWN_ERROR);
+					★System.out.println(FILE_FORMAT_INCORECT);
 					return;
 				}
 				if (!branchSales.containsKey(fileContents.get(0))) {
-					System.out.println(UNKNOWN_ERROR);
+					★System.out.println(FILE_CODE_NOT_EXIST);
 					return;
 				}
 
 				String money = fileContents.get(1);
 
 				if (!money.matches("^[0-9]+$")) {
-					System.out.println(UNKNOWN_ERROR);
+					★System.out.println(UNKNOWN_ERROR);
 					return;
 				}
 
@@ -132,13 +135,14 @@ public class CalculateSales {
 				//既にMapにある売上⾦額を取得
 				Long saleAmount = branchSales.get(fileContents.get(0)) + fileSale;
 
+				if (saleAmount >= 10000000000L) {
+					★System.out.println("TOTAl_AMOUNT");
+					return;
+				}
+
 				//取得したものに加算した売上⾦額「と支店コード」をMapに追加
 				branchSales.put(fileContents.get(0), saleAmount);
 
-				if (saleAmount >= 10000000000L) {
-					System.out.println("合計⾦額が10桁を超えました");
-					return;
-				}
 
 			} catch (IOException e) {
 				System.out.println(UNKNOWN_ERROR);
@@ -178,7 +182,7 @@ public class CalculateSales {
 
 		File file = new File(path, fileName);
 		if (!file.exists()) {
-			System.out.println(UNKNOWN_ERROR);
+			System.out.println(FILE_NOT_EXIST);
 			return false;
 		}
 
@@ -197,7 +201,7 @@ public class CalculateSales {
 				String[] items = line.split(",");
 				if ((items.length != 2) || (!items[0].matches("^[0-9]{3}$"))) {
 					//⽀店定義ファイルの左右両方の仕様が満たされていない場合、
-					System.out.println(UNKNOWN_ERROR);
+					System.out.println(FILE_INVALID_FORMAT);
 					return false;
 				}
 				//  金額がまだ入っていない namesにはすでに完成(001,大阪支店)Names（001,0円）上での足し算に生かすためのKEYのみを設定（putで追加=KEYの設定）
