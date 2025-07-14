@@ -33,6 +33,11 @@ public class CalculateSales {
 	//プログラムはmainメソッドから動く
 	public static void main(String[] args) {
 
+		if (args.length != 1) {
+			System.out.println(UNKNOWN_ERROR);
+			return;
+		}
+
 		// 支店コードと支店名を保持するMap
 		Map<String, String> branchNames = new HashMap<>();
 
@@ -57,14 +62,12 @@ public class CalculateSales {
 			String fileName = files[i].getName();
 
 			//matches を使⽤してファイル名が「数字8桁.rcd」なのか判定します。
-			if (fileName.matches("^[0-9]{8}[.]rcd$")) {
+			if (files[i].isFile() && fileName.matches("^[0-9]{8}[.]rcd$")) {
 
 				//trueの場合の処理
 				rcdFiles.add(files[i]);
 			}
-
 		}
-
 		Collections.sort(rcdFiles);
 
 		for (int i = 0; i < rcdFiles.size() - 1; i++) {
@@ -80,7 +83,6 @@ public class CalculateSales {
 				return;
 			}
 		}
-
 		//以上までが該当のファイルを保持にすぎない
 		//ここからファイルの取り出し	→ 	読み込み[String型]	→	取り出し	→	型変換
 		BufferedReader br = null;
@@ -97,25 +99,46 @@ public class CalculateSales {
 				//文字列を受け取って蓄えて、必要な時に渡す
 
 				String line;
-				//リストを作る
+				//空の証明
 				List<String> fileContents = new ArrayList<>();
-
+				//リストを制作して追加しないと1つ目が２つ目に上書きされてしまう、それゆえ
+				//リストにaddして、上書きされないようにする
 				while ((line = br.readLine()) != null) {
 					//売上ファイルの1行目には支店コード、2行目には売上金額が入っています。
-					//1行ずつ読み込まれるため、1ineは1回目は支店コードが入れられる 2回目は売上金額が入る
-					//リストを制作して追加しないと1つ目が２つ目に上書きされてしまう、それゆえ
-					//リストにaddして、上書きされないようにする
+					//1行ずつ読み込まれるため、1ineは1回目は支店コードが入れられる 2回目は売上金額が入る（
+
 					fileContents.add(line);
-					//このラインを格納しているlist[profit]にline(支店コード[0]・金額[1])が追加されてく
+					//このラインを格納しているlist[fielcontets]にline(支店コード[0]・金額[1])が追加されてく
 				}
+				if (fileContents.size() != 2) {
+					System.out.println(UNKNOWN_ERROR);
+					return;
+				}
+				if (!branchSales.containsKey(fileContents.get(0))) {
+					System.out.println(UNKNOWN_ERROR);
+					return;
+				}
+
+				String money = fileContents.get(1);
+
+				if (!money.matches("^[0-9]+$")) {
+					System.out.println(UNKNOWN_ERROR);
+					return;
+				}
+
 				//型の変換 売上ファイルから読み込んだ売上金額をMapに加算していくために、型変換を行う
-				long fileSale = Long.parseLong(fileContents.get(1));
+				long fileSale = Long.parseLong(money);
 
 				//既にMapにある売上⾦額を取得
 				Long saleAmount = branchSales.get(fileContents.get(0)) + fileSale;
 
-				//取得したものに加算した売上⾦額をMapに追加
+				//取得したものに加算した売上⾦額「と支店コード」をMapに追加
 				branchSales.put(fileContents.get(0), saleAmount);
+
+				if (saleAmount >= 10000000000L) {
+					System.out.println("合計⾦額が10桁を超えました");
+					return;
+				}
 
 			} catch (IOException e) {
 				System.out.println(UNKNOWN_ERROR);
@@ -163,11 +186,11 @@ public class CalculateSales {
 
 		try {
 
-			File file = new File(path, fileName);
-			FileReader fr = new FileReader(file);
+			File file1 = new File(path, fileName);
+			FileReader fr = new FileReader(file1);
 			br = new BufferedReader(fr);
 
-			String line;
+			String line;// 支店定義ファイル(001,大阪支店)
 			// 一行ずつ読み込む
 			while ((line = br.readLine()) != null) {
 
@@ -177,12 +200,10 @@ public class CalculateSales {
 					System.out.println(UNKNOWN_ERROR);
 					return false;
 				}
-				//reallinedで1行づつ読み込んだ結果をlineに代入している	下は支店定義ファイル
-				//nullじゃない限り繰り返す
-				// ※ここの読み込み処理を変更してください。(処理内容1-2) 金額がまだ入っていない namesにはすでに完成	KEYのみを設定	上での足し算に生かす
+				//  金額がまだ入っていない namesにはすでに完成(001,大阪支店)Names（001,0円）上での足し算に生かすためのKEYのみを設定（putで追加=KEYの設定）
 				branchNames.put(items[0], items[1]);
 				branchSales.put(items[0], 0L);
-
+				//上の売上ファイル（1行目支店コード、2行目金額）とちがい、支店定義ファイルは「支店コード、金額」なので、1行ずつ読み込んでそれをitemsに入れるだけでよい
 			}
 		} catch (IOException e) {
 			System.out.println(UNKNOWN_ERROR);
@@ -214,7 +235,6 @@ public class CalculateSales {
 	private static boolean writeFile(String path, String fileName, Map<String, String> branchNames,
 			Map<String, Long> branchSales) {
 		//writeFileが普通の字	大枠で書いてある箇所から呼び出されたところ
-		// ※ここに書き込み処理を作成してください。(処理内容3-1)
 		BufferedWriter bw = null;
 		try {
 			//Fileオブジェクトを作成(path=args[]、fileName=branch.out) 名前と場所を指定して
@@ -232,6 +252,7 @@ public class CalculateSales {
 				//branchNames.get(key);//keyを使ってお店の名前が取れました
 				//branchSales.get(key);//金額がとる
 				bw.write(key + "." + branchNames.get(key) + "," + branchSales.get(key));
+				//keyからヴァリューを表現してる　支店番号、支店名、金額
 				bw.newLine();
 			}
 
@@ -252,5 +273,4 @@ public class CalculateSales {
 		}
 		return true;
 	}
-
 }
