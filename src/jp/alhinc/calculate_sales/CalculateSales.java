@@ -21,6 +21,7 @@ public class CalculateSales {
 	private static final String FILE_NAME_BRANCH_OUT = "branch.out";
 	//
 	private static final String FILE_NAME_COMMOITY_LST = "commodity.lst";
+	private static final String FILE_NAME_COMMOITY_OUT = "commodity.out";
 	// エラーメッセージ
 	private static final String UNKNOWN_ERROR = "予期せぬエラーが発生しました";
 	private static final String FILE_NOT_EXIST = "支店定義ファイルが存在しません";
@@ -28,8 +29,9 @@ public class CalculateSales {
 	private static final String COMMODITY_INVALID_FORMAT = "商品定義ファイルのフォーマットが不正です";
 	private static final String FILE_FORMAT_INCORECT = "のフォーマットが不正です";
 	private static final String FILE_CODE_NOT_EXIST = "の支店コードが不正です";
-	private static final String TOTAl_AMOUNT ="合計金額が10桁を超えました";
-	private static final String FILE_NAME_INVALID ="売上ファイル名が連番になっていません";
+	private static final String TOTAl_AMOUNT = "合計金額が10桁を超えました";
+	private static final String FILE_NAME_INVALID = "売上ファイル名が連番になっていません";
+
 	/**
 	 * メインメソッド
 	 *
@@ -57,11 +59,12 @@ public class CalculateSales {
 
 		// 支店定義ファイル読み込み処理を呼び出す、その時に引数を４つ持ってっている
 		//引数…順番(型)、個数　これがあっていないと、エラーになる
-		if (!readFile(args[0], FILE_NAME_BRANCH_LST, branchNames, branchSales , "^[0-9]{3}$",FILE_INVALID_FORMAT)) {
+		if (!readFile(args[0], FILE_NAME_BRANCH_LST, branchNames, branchSales, "^[0-9]{3}$", FILE_INVALID_FORMAT)) {
 			return; //　falseならここで終わる　trueなら店定義ファイル読み込み処に進む
 		}
 
-		if (!readFile(args[0],FILE_NAME_COMMOITY_LST, commodityNames, commoditySales, "^[A-Za-z0-9]{8}+$",COMMODITY_INVALID_FORMAT )) {
+		if (!readFile(args[0], FILE_NAME_COMMOITY_LST, commodityNames, commoditySales, "^[A-Za-z0-9]{8}+$",
+				COMMODITY_INVALID_FORMAT)) {
 			return; //　falseならここで終わる　trueなら店定義ファイル読み込み処に進む
 		}
 		//指定したパスに存在する全てのファイル(または、ディレクトリ)の情報を格納します +files…売上ファイルもあれば、branch.lstも混ざっている
@@ -146,17 +149,16 @@ public class CalculateSales {
 
 				//既にMapにある売上⾦額を取得
 				Long saleAmount = branchSales.get(fileContents.get(0)) + fileSale;
-				Long commodityAmount = commoditySales.get(fileContents.get(0)) + fileSale;
+				Long commodityAmount = commoditySales.get(fileContents.get(1)) + fileSale;
 
-				if (saleAmount >= 10000000000L) {
+				if ((saleAmount >= 10000000000L) ||  (commodityAmount >= 10000000000L)){
 					System.out.println(TOTAl_AMOUNT);
 					return;
 				}
 
 				//取得したものに加算した売上⾦額「と支店コード」をMapに追加X
 				branchSales.put(fileContents.get(0), saleAmount);
-				commoditySales.put(fileContents.get(1), saleAmount);
-
+				commoditySales.put(fileContents.get(1), commodityAmount);
 
 			} catch (IOException e) {
 				System.out.println(UNKNOWN_ERROR);
@@ -174,8 +176,12 @@ public class CalculateSales {
 				}
 			}
 		}
+
 		// 支店別集計ファイル書き込み処理
 		if (!writeFile(args[0], FILE_NAME_BRANCH_OUT, branchNames, branchSales)) {
+			return;
+		}
+		if (!writeFile(args[0], FILE_NAME_COMMOITY_OUT, commodityNames, commoditySales)) {
 			return;
 		}
 	}
@@ -191,8 +197,8 @@ public class CalculateSales {
 	 */
 	//mainメソッドから呼び出される
 	//引数4つ
-	private static boolean readFile(String path, String fileName, Map<String, String> A,
-			Map<String, Long> B, String regex, String invalid) {
+	private static boolean readFile(String path, String fileName, Map<String, String> commonName,
+			Map<String, Long> commmonSales, String regex, String invalid) {
 
 		BufferedReader br = null;
 
@@ -218,8 +224,8 @@ public class CalculateSales {
 					return false;
 				}
 				//  金額がまだ入っていない namesにはすでに完成(001,大阪支店)Names（001,0円）上での足し算に生かすためのKEYのみを設定（putで追加=KEYの設定）
-				A.put(items[0], items[1]);
-				B.put(items[0], 0L);
+				commonName.put(items[0], items[1]);
+				commmonSales.put(items[0], 0L);
 				//上の売上ファイル（1行目支店コード、2行目金額）とちがい、支店定義ファイルは「支店コード、金額」なので、1行ずつ読み込んでそれをitemsに入れるだけでよい
 			}
 		} catch (IOException e) {
@@ -249,8 +255,8 @@ public class CalculateSales {
 	 * @param 支店コードと売上金額を保持するMap
 	 * @return 書き込み可否
 	 */
-	private static boolean writeFile(String path, String fileName, Map<String, String> branchNames,
-			Map<String, Long> branchSales) {
+	private static boolean writeFile(String path, String fileName, Map<String, String> commonNames,
+			Map<String, Long> commonSales) {
 		//writeFileが普通の字	大枠で書いてある箇所から呼び出されたところ
 		BufferedWriter bw = null;
 		try {
@@ -263,12 +269,12 @@ public class CalculateSales {
 			bw = new BufferedWriter(fw);
 
 			//branchNames　keyを取得
-			for (String key : branchSales.keySet()) {
+			for (String key : commonSales.keySet()) {
 
 				//取った情報 keyをつかってbranchNames,branchSalesの情報を取る
 				//branchNames.get(key);//keyを使ってお店の名前が取れました
 				//branchSales.get(key);//金額がとる
-				bw.write(key + "." + branchNames.get(key) + "," + branchSales.get(key));
+				bw.write(key + "." + commonNames.get(key) + "," + commonSales.get(key));
 				//keyからヴァリューを表現してる　支店番号、支店名、金額
 				bw.newLine();
 			}
