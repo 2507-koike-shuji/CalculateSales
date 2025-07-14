@@ -19,15 +19,17 @@ public class CalculateSales {
 
 	// 支店別集計ファイル名
 	private static final String FILE_NAME_BRANCH_OUT = "branch.out";
-
+	//
+	private static final String FILE_NAME_COMMOITY_LST = "commodity.lst";
 	// エラーメッセージ
 	private static final String UNKNOWN_ERROR = "予期せぬエラーが発生しました";
 	private static final String FILE_NOT_EXIST = "支店定義ファイルが存在しません";
 	private static final String FILE_INVALID_FORMAT = "支店定義ファイルのフォーマットが不正です";
-	private static final String FILE_FORMAT_INCORECT = "<該当ファイル名>のフォーマットが不正です";
-	private static final String FILE_CODE_NOT_EXIST = "<該当ファイル名>の⽀店コードが不正です";
+	private static final String COMMODITY_INVALID_FORMAT = "商品定義ファイルのフォーマットが不正です";
+	private static final String FILE_FORMAT_INCORECT = "のフォーマットが不正です";
+	private static final String FILE_CODE_NOT_EXIST = "の支店コードが不正です";
 	private static final String TOTAl_AMOUNT ="合計金額が10桁を超えました";
-
+	private static final String FILE_NAME_INVALID ="売上ファイル名が連番になっていません";
 	/**
 	 * メインメソッド
 	 *
@@ -47,9 +49,19 @@ public class CalculateSales {
 		// 支店コードと売上金額を保持するMap
 		Map<String, Long> branchSales = new HashMap<>();
 
+		// 支店コードと支店名を保持するMap
+		Map<String, String> commodityNames = new HashMap<>();
+
+		// 支店コードと売上金額を保持するMap
+		Map<String, Long> commoditySales = new HashMap<>();
+
 		// 支店定義ファイル読み込み処理を呼び出す、その時に引数を４つ持ってっている
 		//引数…順番(型)、個数　これがあっていないと、エラーになる
-		if (!readFile(args[0], FILE_NAME_BRANCH_LST, branchNames, branchSales)) {
+		if (!readFile(args[0], FILE_NAME_BRANCH_LST, branchNames, branchSales , "^[0-9]{3}$",FILE_INVALID_FORMAT)) {
+			return; //　falseならここで終わる　trueなら店定義ファイル読み込み処に進む
+		}
+
+		if (!readFile(args[0],FILE_NAME_COMMOITY_LST, commodityNames, commoditySales, "^[A-Za-z0-9]{8}+$",COMMODITY_INVALID_FORMAT )) {
 			return; //　falseならここで終わる　trueなら店定義ファイル読み込み処に進む
 		}
 		//指定したパスに存在する全てのファイル(または、ディレクトリ)の情報を格納します +files…売上ファイルもあれば、branch.lstも混ざっている
@@ -82,7 +94,7 @@ public class CalculateSales {
 
 			//⽐較する2つのファイル名の先頭から数字の8⽂字を切り出し、int型に変換します。
 			if ((latter - former) != 1) {
-				System.out.println(UNKNOWN_ERROR);
+				System.out.println(FILE_NAME_INVALID);
 				return;
 			}
 		}
@@ -113,35 +125,37 @@ public class CalculateSales {
 					fileContents.add(line);
 					//このラインを格納しているlist[fielcontets]にline(支店コード[0]・金額[1])が追加されてく
 				}
-				if (fileContents.size() != 2) {
-					★System.out.println(FILE_FORMAT_INCORECT);
+				if (fileContents.size() != 3) {
+					System.out.println(rcdFiles.get(i).getName() + FILE_FORMAT_INCORECT);
 					return;
 				}
 				if (!branchSales.containsKey(fileContents.get(0))) {
-					★System.out.println(FILE_CODE_NOT_EXIST);
+					System.out.println(rcdFiles.get(i).getName() + FILE_CODE_NOT_EXIST);
 					return;
 				}
 
-				String money = fileContents.get(1);
+				String money = fileContents.get(2);
 
 				if (!money.matches("^[0-9]+$")) {
-					★System.out.println(UNKNOWN_ERROR);
+					System.out.println(UNKNOWN_ERROR);
 					return;
 				}
-
+				//ここまでが売上ファイルだから変わらない
 				//型の変換 売上ファイルから読み込んだ売上金額をMapに加算していくために、型変換を行う
 				long fileSale = Long.parseLong(money);
 
 				//既にMapにある売上⾦額を取得
 				Long saleAmount = branchSales.get(fileContents.get(0)) + fileSale;
+				Long commodityAmount = commoditySales.get(fileContents.get(0)) + fileSale;
 
 				if (saleAmount >= 10000000000L) {
-					★System.out.println("TOTAl_AMOUNT");
+					System.out.println(TOTAl_AMOUNT);
 					return;
 				}
 
-				//取得したものに加算した売上⾦額「と支店コード」をMapに追加
+				//取得したものに加算した売上⾦額「と支店コード」をMapに追加X
 				branchSales.put(fileContents.get(0), saleAmount);
+				commoditySales.put(fileContents.get(1), saleAmount);
 
 
 			} catch (IOException e) {
@@ -177,21 +191,20 @@ public class CalculateSales {
 	 */
 	//mainメソッドから呼び出される
 	//引数4つ
-	private static boolean readFile(String path, String fileName, Map<String, String> branchNames,
-			Map<String, Long> branchSales) {
-
-		File file = new File(path, fileName);
-		if (!file.exists()) {
-			System.out.println(FILE_NOT_EXIST);
-			return false;
-		}
+	private static boolean readFile(String path, String fileName, Map<String, String> A,
+			Map<String, Long> B, String regex, String invalid) {
 
 		BufferedReader br = null;
 
 		try {
 
-			File file1 = new File(path, fileName);
-			FileReader fr = new FileReader(file1);
+			//ファイルを開いている ファイルあるならば開く　ファイルがないならばつくる
+			File file = new File(path, fileName);
+			if (!file.exists()) {
+				System.out.println(FILE_NOT_EXIST);
+				return false;
+			}
+			FileReader fr = new FileReader(file);
 			br = new BufferedReader(fr);
 
 			String line;// 支店定義ファイル(001,大阪支店)
@@ -199,14 +212,14 @@ public class CalculateSales {
 			while ((line = br.readLine()) != null) {
 
 				String[] items = line.split(",");
-				if ((items.length != 2) || (!items[0].matches("^[0-9]{3}$"))) {
+				if ((items.length != 2) || (!items[0].matches(regex))) {
 					//⽀店定義ファイルの左右両方の仕様が満たされていない場合、
-					System.out.println(FILE_INVALID_FORMAT);
+					System.out.println(invalid);
 					return false;
 				}
 				//  金額がまだ入っていない namesにはすでに完成(001,大阪支店)Names（001,0円）上での足し算に生かすためのKEYのみを設定（putで追加=KEYの設定）
-				branchNames.put(items[0], items[1]);
-				branchSales.put(items[0], 0L);
+				A.put(items[0], items[1]);
+				B.put(items[0], 0L);
 				//上の売上ファイル（1行目支店コード、2行目金額）とちがい、支店定義ファイルは「支店コード、金額」なので、1行ずつ読み込んでそれをitemsに入れるだけでよい
 			}
 		} catch (IOException e) {
