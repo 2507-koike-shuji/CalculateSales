@@ -25,10 +25,12 @@ public class CalculateSales {
 	// エラーメッセージ
 	private static final String UNKNOWN_ERROR = "予期せぬエラーが発生しました";
 	private static final String FILE_NOT_EXIST = "支店定義ファイルが存在しません";
+	private static final String COMMODITY_NOT_EXIST = "支店定義ファイルが存在しません";
 	private static final String FILE_INVALID_FORMAT = "支店定義ファイルのフォーマットが不正です";
 	private static final String COMMODITY_INVALID_FORMAT = "商品定義ファイルのフォーマットが不正です";
 	private static final String FILE_FORMAT_INCORECT = "のフォーマットが不正です";
 	private static final String FILE_CODE_NOT_EXIST = "の支店コードが不正です";
+	private static final String COMMODITY_CODE_NOT_EXIST = "の商品コードが不正です";
 	private static final String TOTAl_AMOUNT = "合計金額が10桁を超えました";
 	private static final String FILE_NAME_INVALID = "売上ファイル名が連番になっていません";
 
@@ -63,7 +65,7 @@ public class CalculateSales {
 			return; //　falseならここで終わる　trueなら店定義ファイル読み込み処に進む
 		}
 
-		if (!readFile(args[0], FILE_NAME_COMMOITY_LST, commodityNames, commoditySales, "^[A-Za-z0-9]{8}+$",
+		if (!readFile(args[0], FILE_NAME_COMMOITY_LST, commodityNames, commoditySales, "^[A-Za-z0-9]{8}$",
 				COMMODITY_INVALID_FORMAT)) {
 			return; //　falseならここで終わる　trueなら店定義ファイル読み込み処に進む
 		}
@@ -132,8 +134,14 @@ public class CalculateSales {
 					System.out.println(rcdFiles.get(i).getName() + FILE_FORMAT_INCORECT);
 					return;
 				}
-				if (!branchSales.containsKey(fileContents.get(0))) {
+
+				//支店コードの存在チェック
+				if (!branchNames.containsKey(fileContents.get(0))) {
 					System.out.println(rcdFiles.get(i).getName() + FILE_CODE_NOT_EXIST);
+					return;
+				}
+				if (!commodityNames.containsKey(fileContents.get(1))) {
+					System.out.println(rcdFiles.get(i).getName() +COMMODITY_CODE_NOT_EXIST);
 					return;
 				}
 
